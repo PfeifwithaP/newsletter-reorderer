@@ -39,12 +39,16 @@ export default function NewsletterReorderer() {
     try {
       let cleanedInput = input.trim();
       
-      // Remove outer braces if it's wrapped like {[...]}
-      if (cleanedInput.startsWith('{') && cleanedInput.endsWith('}')) {
-        // Try to find the array inside
-        const arrayMatch = cleanedInput.match(/\[\{.*\}\]/s);
-        if (arrayMatch) {
-          cleanedInput = arrayMatch[0];
+      // Remove outer braces - handle {{{ or { wrapping
+      while (cleanedInput.startsWith('{') && cleanedInput.endsWith('}')) {
+        const innerContent = cleanedInput.slice(1, -1).trim();
+        if (innerContent.startsWith('[')) {
+          cleanedInput = innerContent;
+          break;
+        } else if (innerContent.startsWith('{')) {
+          cleanedInput = innerContent;
+        } else {
+          break;
         }
       }
       
@@ -67,6 +71,7 @@ export default function NewsletterReorderer() {
       setStories(withOutlets);
       setJsonInput('');
     } catch (e) {
+      console.error('Parse error:', e);
       alert('Invalid JSON. Make sure you paste the aggregator output.');
     }
   };
