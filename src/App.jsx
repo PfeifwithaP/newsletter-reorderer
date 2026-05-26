@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
-import { Copy, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Copy, Check, Settings, X } from 'lucide-react';
 
 export default function NewsletterReorderer() {
   const [stories, setStories] = useState([]);
   const [draggedItem, setDraggedItem] = useState(null);
   const [copied, setCopied] = useState(false);
   const [jsonInput, setJsonInput] = useState('');
-  const [showPreview, setShowPreview] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [newDomain, setNewDomain] = useState('');
+  const [newNickname, setNewNickname] = useState('');
 
-
-  // Outlet mapping
-  const outletMap = {
+  // Load outlet map from localStorage or use defaults
+  const defaultOutletMap = {
     'nytimes.com': 'NYT',
     'wsj.com': 'WSJ',
     'washingtonpost.com': 'WaPo',
@@ -27,6 +28,44 @@ export default function NewsletterReorderer() {
     'nature.com': 'Nature',
     'science.org': 'Science',
     'sciencedaily.com': 'Science Daily',
+  };
+
+  const [outletMap, setOutletMapState] = useState(() => {
+    const stored = localStorage.getItem('outletMap');
+    return stored ? JSON.parse(stored) : defaultOutletMap;
+  });
+
+  const saveOutletMap = (newMap) => {
+    setOutletMapState(newMap);
+    localStorage.setItem('outletMap', JSON.stringify(newMap));
+  };
+
+  const handleOutletChange = (domain, newNickname) => {
+    const updated = { ...outletMap, [domain]: newNickname };
+    saveOutletMap(updated);
+  };
+
+  const addNewOutlet = () => {
+    if (newDomain.trim() && newNickname.trim()) {
+      const updated = { ...outletMap, [newDomain.trim()]: newNickname.trim() };
+      saveOutletMap(updated);
+      setNewDomain('');
+      setNewNickname('');
+      return true;
+    }
+    return false;
+  };
+
+  const deleteOutlet = (domain) => {
+    const updated = { ...outletMap };
+    delete updated[domain];
+    saveOutletMap(updated);
+  };
+
+  const resetToDefaults = () => {
+    if (confirm('Reset all outlets to defaults?')) {
+      saveOutletMap(defaultOutletMap);
+    }
   };
 
   const getOutletName = (url) => {
@@ -148,10 +187,181 @@ export default function NewsletterReorderer() {
 
   return (
     <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: '900px', margin: '0 auto', padding: '20px' }}>
-      <h1 style={{ color: '#d42121', marginBottom: '10px' }}>Newsletter Story Reorderer</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        <h1 style={{ color: '#d42121', margin: '0' }}>Newsletter Story Reorderer</h1>
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          style={{
+            padding: '8px 12px',
+            backgroundColor: '#f0f0f0',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          <Settings size={18} /> Settings
+        </button>
+      </div>
       <p style={{ color: '#666', marginBottom: '20px' }}>Paste the Make aggregator output, drag stories to reorder within categories, then copy the exported JSON to paste back into Make.</p>
 
-      {/* Input Section */}
+      {/* Settings Modal */}
+      {showSettings && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '600px',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0 }}>Outlet Settings</h2>
+              <button
+                onClick={() => setShowSettings(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Add new outlet */}
+            <div style={{ marginBottom: '25px', paddingBottom: '20px', borderBottom: '1px solid #eee' }}>
+              <h3 style={{ marginTop: 0, marginBottom: '12px' }}>Add New Outlet</h3>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                <input
+                  type="text"
+                  placeholder="Domain (e.g., example.com)"
+                  value={newDomain}
+                  onChange={(e) => setNewDomain(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Nickname (e.g., Example)"
+                  value={newNickname}
+                  onChange={(e) => setNewNickname(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                  }}
+                />
+                <button
+                  onClick={addNewOutlet}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#4CAF50',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+
+            {/* Existing outlets */}
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{ marginTop: 0, marginBottom: '12px' }}>Current Outlets</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {Object.entries(outletMap)
+                  .sort((a, b) => a[1].localeCompare(b[1]))
+                  .map(([domain, nickname]) => (
+                    <div key={domain} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        value={nickname}
+                        onChange={(e) => handleOutletChange(domain, e.target.value)}
+                        style={{
+                          flex: 1,
+                          padding: '8px',
+                          border: '1px solid #ddd',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                        }}
+                      />
+                      <span style={{ fontSize: '12px', color: '#999', minWidth: '200px', textAlign: 'right' }}>
+                        {domain}
+                      </span>
+                      <button
+                        onClick={() => deleteOutlet(domain)}
+                        style={{
+                          padding: '6px 10px',
+                          backgroundColor: '#ff4444',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Reset button */}
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={resetToDefaults}
+                style={{
+                  padding: '10px 16px',
+                  backgroundColor: '#f0f0f0',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                }}
+              >
+                Reset to Defaults
+              </button>
+              <button
+                onClick={() => setShowSettings(false)}
+                style={{
+                  padding: '10px 16px',
+                  backgroundColor: '#333',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
         <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>Paste JSON from Make:</label>
         <textarea
