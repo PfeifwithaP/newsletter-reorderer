@@ -37,7 +37,18 @@ export default function NewsletterReorderer() {
 
   const parseJson = (input) => {
     try {
-      const parsed = JSON.parse(input);
+      let cleanedInput = input.trim();
+      
+      // Remove outer braces if it's wrapped like {[...]}
+      if (cleanedInput.startsWith('{') && cleanedInput.endsWith('}')) {
+        // Try to find the array inside
+        const arrayMatch = cleanedInput.match(/\[\{.*\}\]/s);
+        if (arrayMatch) {
+          cleanedInput = arrayMatch[0];
+        }
+      }
+      
+      const parsed = JSON.parse(cleanedInput);
       let stories = [];
       
       // Handle both formats: plain array or object with array property
