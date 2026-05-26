@@ -38,14 +38,23 @@ export default function NewsletterReorderer() {
   const parseJson = (input) => {
     try {
       const parsed = JSON.parse(input);
-      if (Array.isArray(parsed.array)) {
-        const withOutlets = parsed.array.map((item) => ({
-          ...item,
-          outlet: getOutletName(item.link),
-        }));
-        setStories(withOutlets);
-        setJsonInput('');
+      let stories = [];
+      
+      // Handle both formats: plain array or object with array property
+      if (Array.isArray(parsed)) {
+        stories = parsed;
+      } else if (parsed.array && Array.isArray(parsed.array)) {
+        stories = parsed.array;
+      } else {
+        throw new Error('Expected an array or object with an array property');
       }
+      
+      const withOutlets = stories.map((item) => ({
+        ...item,
+        outlet: getOutletName(item.link || ''),
+      }));
+      setStories(withOutlets);
+      setJsonInput('');
     } catch (e) {
       alert('Invalid JSON. Make sure you paste the aggregator output.');
     }
@@ -82,15 +91,14 @@ export default function NewsletterReorderer() {
   };
 
   const exportJson = () => {
-    const output = {
-      array: stories.map((s) => {
-        // Prepend outlet to title
-        const titleWithOutlet = s.outlet ? `${s.outlet}: ${s.title}` : s.title;
-        return {
-          _id: s._id,
-          tags: s.tags,
-          SortKey: s.SortKey,
-          ArticleBlock: `<div style="margin-bottom: 20px; font-family: sans-serif; font-size: 14px; line-height: 1.5;">
+    const output = stories.map((s) => {
+      // Prepend outlet to title
+      const titleWithOutlet = s.outlet ? `${s.outlet}: ${s.title}` : s.title;
+      return {
+        _id: s._id,
+        tags: s.tags,
+        SortKey: s.SortKey,
+        ArticleBlock: `<div style="margin-bottom: 20px; font-family: sans-serif; font-size: 14px; line-height: 1.5;">
    <a href="${s.link}" style="text-decoration: none; color: #000000; font-size: 16px;">
       <b>${titleWithOutlet}</b>
    </a>
@@ -98,12 +106,11 @@ export default function NewsletterReorderer() {
       ${s.excerpt || ''}
    </div>
 </div>`,
-          link: s.link,
-          title: titleWithOutlet,
-          excerpt: s.excerpt,
-        };
-      }),
-    };
+        link: s.link,
+        title: titleWithOutlet,
+        excerpt: s.excerpt,
+      };
+    });
 
     const json = JSON.stringify(output, null, 2);
     navigator.clipboard.writeText(json);
