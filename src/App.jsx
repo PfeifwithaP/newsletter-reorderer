@@ -66,17 +66,6 @@ export default function NewsletterReorderer() {
     const sourceCategory = draggedItem.category;
     const sourceIndex = draggedItem.index;
 
-    // Get stories in each category
-    const sourceIndices = newStories
-      .map((s, i) => ({ index: i, category: s.SortKey }))
-      .filter((s) => s.category === sourceCategory)
-      .map((s) => s.index);
-
-    const targetIndices = newStories
-      .map((s, i) => ({ index: i, category: s.SortKey }))
-      .filter((s) => s.category === targetCategory)
-      .map((s) => s.index);
-
     if (sourceCategory === targetCategory) {
       // Reorder within same category
       const sourceItem = newStories[sourceIndex];
