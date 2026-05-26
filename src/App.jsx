@@ -6,6 +6,7 @@ export default function NewsletterReorderer() {
   const [draggedItem, setDraggedItem] = useState(null);
   const [copied, setCopied] = useState(false);
   const [jsonInput, setJsonInput] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [newDomain, setNewDomain] = useState('');
   const [newNickname, setNewNickname] = useState('');
@@ -63,6 +64,7 @@ export default function NewsletterReorderer() {
   };
 
   const resetToDefaults = () => {
+    // eslint-disable-next-line no-restricted-globals
     if (confirm('Reset all outlets to defaults?')) {
       saveOutletMap(defaultOutletMap);
     }
