@@ -79,9 +79,6 @@ export default function NewsletterReorderer() {
 
     if (sourceCategory === targetCategory) {
       // Reorder within same category
-      const sourcePos = sourceIndices.indexOf(sourceIndex);
-      const targetPos = targetIndices.indexOf(targetIndex);
-
       const sourceItem = newStories[sourceIndex];
       newStories.splice(sourceIndex, 1);
 
