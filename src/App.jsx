@@ -10,6 +10,8 @@ export default function NewsletterReorderer() {
   const [showSettings, setShowSettings] = useState(false);
   const [newDomain, setNewDomain] = useState('');
   const [newNickname, setNewNickname] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState('');
 
   // Load outlet map from localStorage or use defaults
   const defaultOutletMap = {
@@ -68,6 +70,27 @@ export default function NewsletterReorderer() {
     if (confirm('Reset all outlets to defaults?')) {
       saveOutletMap(defaultOutletMap);
     }
+  };
+
+  const startEditingTitle = (story) => {
+    setEditingId(story._id);
+    setEditingTitle(story.title);
+  };
+
+  const saveEditedTitle = () => {
+    if (editingId !== null) {
+      const updatedStories = stories.map((s) =>
+        s._id === editingId ? { ...s, title: editingTitle } : s
+      );
+      setStories(updatedStories);
+      setEditingId(null);
+      setEditingTitle('');
+    }
+  };
+
+  const cancelEditingTitle = () => {
+    setEditingId(null);
+    setEditingTitle('');
   };
 
   const getOutletName = (url) => {
@@ -474,9 +497,50 @@ export default function NewsletterReorderer() {
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                           <div style={{ cursor: 'grab', userSelect: 'none', color: '#999', marginTop: '2px' }}>⋮⋮</div>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 'bold', fontSize: '15px', lineHeight: '1.4', marginBottom: '6px' }}>
-                              {story.outlet}: {story.title}
-                            </div>
+                            {editingId === story._id ? (
+                              <input
+                                autoFocus
+                                type="text"
+                                value={editingTitle}
+                                onChange={(e) => setEditingTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') saveEditedTitle();
+                                  if (e.key === 'Escape') cancelEditingTitle();
+                                }}
+                                onBlur={saveEditedTitle}
+                                style={{
+                                  width: '100%',
+                                  padding: '8px',
+                                  fontSize: '15px',
+                                  fontWeight: 'bold',
+                                  border: '2px solid #d42121',
+                                  borderRadius: '4px',
+                                  marginBottom: '6px',
+                                }}
+                              />
+                            ) : (
+                              <div
+                                onClick={() => startEditingTitle(story)}
+                                style={{
+                                  fontWeight: 'bold',
+                                  fontSize: '15px',
+                                  lineHeight: '1.4',
+                                  marginBottom: '6px',
+                                  cursor: 'pointer',
+                                  padding: '4px',
+                                  borderRadius: '3px',
+                                  transition: 'background-color 0.2s',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#f0f0f0';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                }}
+                              >
+                                {story.outlet}: {story.title}
+                              </div>
+                            )}
                             {story.excerpt && (
                               <div style={{ fontSize: '13px', color: '#666', lineHeight: '1.4' }}>
                                 {story.excerpt}
