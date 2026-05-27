@@ -511,10 +511,10 @@ export default function NewsletterReorderer() {
                 }}
                 dangerouslySetInnerHTML={{
                   __html: Object.entries(groupedStories)
-                    .filter(([_, storyList]) => storyList.length > 0)
+                    .filter(([, storyList]) => storyList.length > 0)
                     .map(
                       ([category, categoryStories]) => `
-                    <h3 style="color: #d42121; margin-top: 20px; margin-bottom: 10px;">${category.replace(/^\d\.\s/, '')}</h3>
+                    <h3 style="color: #d42121; margin-top: 20px; margin-bottom: 10px;">${category.replace(/^\d+\.\s/, '')}</h3>
                     ${categoryStories.map((s) => s.ArticleBlock).join('')}
                   `
                     )
