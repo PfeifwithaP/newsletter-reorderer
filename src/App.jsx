@@ -16,7 +16,6 @@ export default function NewsletterReorderer() {
     const stored = localStorage.getItem('outletPriority');
     return stored ? JSON.parse(stored) : ['NYT', 'WSJ', 'WaPo', 'Bloomberg', 'NPR', 'The Atlantic', 'Chronicle', 'People'];
   });
-  const [draggedPriority, setDraggedPriority] = useState(null);
 
   // Load outlet map from localStorage or use defaults
   const defaultOutletMap = {
