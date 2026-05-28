@@ -12,6 +12,11 @@ export default function NewsletterReorderer() {
   const [newNickname, setNewNickname] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [outletPriority, setOutletPriority] = useState(() => {
+    const stored = localStorage.getItem('outletPriority');
+    return stored ? JSON.parse(stored) : ['NYT', 'WSJ', 'WaPo', 'Bloomberg', 'NPR', 'The Atlantic', 'Chronicle', 'People'];
+  });
+  const [draggedPriority, setDraggedPriority] = useState(null);
 
   // Load outlet map from localStorage or use defaults
   const defaultOutletMap = {
@@ -91,6 +96,68 @@ export default function NewsletterReorderer() {
   const cancelEditingTitle = () => {
     setEditingId(null);
     setEditingTitle('');
+  };
+
+  const saveOutletPriority = (newPriority) => {
+    setOutletPriority(newPriority);
+    localStorage.setItem('outletPriority', JSON.stringify(newPriority));
+  };
+
+  const autoSortByOutletPriority = () => {
+    const sortedStories = [...stories].sort((a, b) => {
+      // If different categories, keep original category order
+      if (a.SortKey !== b.SortKey) {
+        return a.SortKey.localeCompare(b.SortKey);
+      }
+
+      // Within same category, sort by outlet priority
+      const aOutlet = a.outlet || '';
+      const bOutlet = b.outlet || '';
+
+      const aPriority = outletPriority.indexOf(aOutlet);
+      const bPriority = outletPriority.indexOf(bOutlet);
+
+      // If both in priority list, sort by priority
+      if (aPriority !== -1 && bPriority !== -1) {
+        return aPriority - bPriority;
+      }
+
+      // If only one in priority list, it comes first
+      if (aPriority !== -1) return -1;
+      if (bPriority !== -1) return 1;
+
+      // If neither in list, keep original order
+      return 0;
+    });
+
+    setStories(sortedStories);
+  };
+
+  const movePriorityUp = (index) => {
+    if (index > 0) {
+      const newPriority = [...outletPriority];
+      [newPriority[index], newPriority[index - 1]] = [newPriority[index - 1], newPriority[index]];
+      saveOutletPriority(newPriority);
+    }
+  };
+
+  const movePriorityDown = (index) => {
+    if (index < outletPriority.length - 1) {
+      const newPriority = [...outletPriority];
+      [newPriority[index], newPriority[index + 1]] = [newPriority[index + 1], newPriority[index]];
+      saveOutletPriority(newPriority);
+    }
+  };
+
+  const removePriorityOutlet = (index) => {
+    const newPriority = outletPriority.filter((_, i) => i !== index);
+    saveOutletPriority(newPriority);
+  };
+
+  const addPriorityOutlet = (outlet) => {
+    if (outlet && !outletPriority.includes(outlet)) {
+      saveOutletPriority([...outletPriority, outlet]);
+    }
   };
 
   const getOutletName = (url) => {
@@ -354,6 +421,105 @@ export default function NewsletterReorderer() {
               </div>
             </div>
 
+            {/* Outlet Priority Order */}
+            <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #eee' }}>
+              <h3 style={{ marginTop: 0, marginBottom: '12px' }}>Outlet Priority Order</h3>
+              <p style={{ fontSize: '12px', color: '#666', marginTop: 0, marginBottom: '12px' }}>
+                When you click "Auto-sort by Priority", stories are reordered by this list (most important first).
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                {outletPriority.map((outlet, idx) => (
+                  <div
+                    key={outlet}
+                    style={{
+                      display: 'flex',
+                      gap: '10px',
+                      alignItems: 'center',
+                      padding: '8px',
+                      backgroundColor: '#f9f9f9',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    <span style={{ fontSize: '12px', color: '#999', minWidth: '20px' }}>
+                      {idx + 1}.
+                    </span>
+                    <span style={{ flex: 1, fontWeight: '500' }}>{outlet}</span>
+                    <button
+                      onClick={() => movePriorityUp(idx)}
+                      disabled={idx === 0}
+                      style={{
+                        padding: '4px 8px',
+                        backgroundColor: idx === 0 ? '#f0f0f0' : '#2196F3',
+                        color: idx === 0 ? '#ccc' : 'white',
+                        border: 'none',
+                        borderRadius: '3px',
+                        cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                        fontSize: '12px',
+                      }}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      onClick={() => movePriorityDown(idx)}
+                      disabled={idx === outletPriority.length - 1}
+                      style={{
+                        padding: '4px 8px',
+                        backgroundColor: idx === outletPriority.length - 1 ? '#f0f0f0' : '#2196F3',
+                        color: idx === outletPriority.length - 1 ? '#ccc' : 'white',
+                        border: 'none',
+                        borderRadius: '3px',
+                        cursor: idx === outletPriority.length - 1 ? 'not-allowed' : 'pointer',
+                        fontSize: '12px',
+                      }}
+                    >
+                      ↓
+                    </button>
+                    <button
+                      onClick={() => removePriorityOutlet(idx)}
+                      style={{
+                        padding: '4px 10px',
+                        backgroundColor: '#ff4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '3px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      addPriorityOutlet(e.target.value);
+                      e.target.value = '';
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                  }}
+                >
+                  <option value="">Add outlet to priority list...</option>
+                  {Object.values(outletMap)
+                    .filter((outlet) => !outletPriority.includes(outlet))
+                    .map((outlet) => (
+                      <option key={outlet} value={outlet}>
+                        {outlet}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+
             {/* Reset button */}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
@@ -425,6 +591,20 @@ export default function NewsletterReorderer() {
       {stories.length > 0 && (
         <>
           <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              onClick={autoSortByOutletPriority}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#FF9800',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+              }}
+            >
+              Auto-sort by Priority
+            </button>
             <button
               onClick={() => setShowPreview(!showPreview)}
               style={{
