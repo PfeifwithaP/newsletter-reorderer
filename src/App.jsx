@@ -16,6 +16,9 @@ export default function NewsletterReorderer() {
     const stored = localStorage.getItem('outletPriority');
     return stored ? JSON.parse(stored) : ['NYT', 'WSJ', 'WaPo', 'Bloomberg', 'NPR', 'The Atlantic', 'Chronicle', 'People'];
   });
+  const [makeWebhookUrl, setMakeWebhookUrl] = useState(() => {
+    return localStorage.getItem('makeWebhookUrl') || '';
+  });
 
   // Load outlet map from localStorage or use defaults
   const defaultOutletMap = {
@@ -156,6 +159,36 @@ export default function NewsletterReorderer() {
   const addPriorityOutlet = (outlet) => {
     if (outlet && !outletPriority.includes(outlet)) {
       saveOutletPriority([...outletPriority, outlet]);
+    }
+  };
+
+  const saveMakeWebhookUrl = (url) => {
+    setMakeWebhookUrl(url);
+    localStorage.setItem('makeWebhookUrl', url);
+  };
+
+  const sendToMake = async () => {
+    if (!makeWebhookUrl) {
+      alert('Please enter your Make webhook URL in Settings first!');
+      return;
+    }
+
+    try {
+      const response = await fetch(makeWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(stories),
+      });
+
+      if (response.ok) {
+        alert('✅ Stories sent to Make! Your workflow will resume now.');
+      } else {
+        alert('❌ Error sending to Make. Check your webhook URL.');
+      }
+    } catch (error) {
+      alert(`❌ Error: ${error.message}`);
     }
   };
 
@@ -420,6 +453,34 @@ export default function NewsletterReorderer() {
               </div>
             </div>
 
+            {/* Make Webhook URL */}
+            <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #eee' }}>
+              <h3 style={{ marginTop: 0, marginBottom: '12px' }}>Make Webhook URL</h3>
+              <p style={{ fontSize: '12px', color: '#666', marginTop: 0, marginBottom: '12px' }}>
+                Paste your Make webhook URL here. When you click "Send to Make", your reordered stories will be sent to Make and your workflow will resume.
+              </p>
+              <input
+                type="text"
+                placeholder="https://hook.make.com/..."
+                value={makeWebhookUrl}
+                onChange={(e) => saveMakeWebhookUrl(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  fontFamily: 'monospace',
+                  boxSizing: 'border-box',
+                }}
+              />
+              {makeWebhookUrl && (
+                <div style={{ fontSize: '12px', color: '#4CAF50', marginTop: '8px' }}>
+                  ✓ Webhook URL saved
+                </div>
+              )}
+            </div>
+
             {/* Outlet Priority Order */}
             <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #eee' }}>
               <h3 style={{ marginTop: 0, marginBottom: '12px' }}>Outlet Priority Order</h3>
@@ -590,6 +651,20 @@ export default function NewsletterReorderer() {
       {stories.length > 0 && (
         <>
           <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              onClick={sendToMake}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#6200EA',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+              }}
+            >
+              Send to Make
+            </button>
             <button
               onClick={autoSortByOutletPriority}
               style={{
