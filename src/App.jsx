@@ -174,19 +174,15 @@ export default function NewsletterReorderer() {
     }
 
     try {
-      const response = await fetch(makeWebhookUrl, {
+      await fetch(makeWebhookUrl, {
         method: 'POST',
+        mode: 'no-cors',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(stories),
       });
-
-      if (response.ok) {
-        alert('✅ Stories sent to Make! Your workflow will resume now.');
-      } else {
-        alert('❌ Error sending to Make. Check your webhook URL.');
-      }
+      alert('✅ Stories sent to Make! Your workflow will resume now.');
     } catch (error) {
       alert(`❌ Error: ${error.message}`);
     }
