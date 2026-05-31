@@ -174,13 +174,31 @@ export default function NewsletterReorderer() {
     }
 
     try {
+      const output = stories.map((s) => {
+        const titleWithOutlet = s.outlet ? `${s.outlet}: ${s.title}` : s.title;
+        return {
+          _id: s._id,
+          tags: s.tags,
+          SortKey: s.SortKey,
+          ArticleBlock: `<div style="margin-bottom: 20px; font-family: sans-serif; font-size: 14px; line-height: 1.5;">
+   <a href="${s.link}" style="text-decoration: none; color: #000000; font-size: 16px;">
+      <b>${titleWithOutlet}</b>
+   </a>
+   <div style="margin-top: 4px; color: #333333;">
+      ${s.excerpt || ''}
+   </div>
+</div>`,
+          link: s.link,
+          title: titleWithOutlet,
+          excerpt: s.excerpt,
+        };
+      });
+
       await fetch(makeWebhookUrl, {
         method: 'POST',
         mode: 'no-cors',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(stories),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(output),
       });
       alert('✅ Stories sent to Make! Your workflow will resume now.');
     } catch (error) {
