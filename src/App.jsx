@@ -183,8 +183,9 @@ export default function NewsletterReorderer() {
     }
     setLoadingFromDrive(true);
     try {
-      const url = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
-      const response = await fetch(url);
+      const driveUrl = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(driveUrl)}`;
+      const response = await fetch(proxyUrl);
       if (!response.ok) throw new Error('Failed to fetch file from Google Drive');
       const text = await response.text();
       parseJson(text);
