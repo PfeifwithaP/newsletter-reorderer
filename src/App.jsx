@@ -183,14 +183,18 @@ export default function NewsletterReorderer() {
     }
     setLoadingFromDrive(true);
     try {
+      // Try multiple approaches
       const driveUrl = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(driveUrl)}`;
+      
+      // Use allorigins proxy which is more reliable
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(driveUrl)}`;
       const response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error('Failed to fetch file from Google Drive');
+      if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
       const text = await response.text();
+      if (!text || text.trim() === '') throw new Error('Empty response from Google Drive');
       parseJson(text);
     } catch (error) {
-      alert(`❌ Error loading from Google Drive: ${error.message}`);
+      alert(`❌ Error loading from Google Drive: ${error.message}\n\nMake sure the file is shared as "Anyone with the link" in Google Drive.`);
     } finally {
       setLoadingFromDrive(false);
     }
