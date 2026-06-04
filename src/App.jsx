@@ -177,24 +177,18 @@ export default function NewsletterReorderer() {
   };
 
   const loadFromDrive = async () => {
-    if (!driveFileId) {
-      alert('Please enter your Google Drive file ID in Settings first!');
-      return;
-    }
     setLoadingFromDrive(true);
     try {
-      // Try multiple approaches
-      const driveUrl = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
-      
-      // Use allorigins proxy which is more reliable
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(driveUrl)}`;
-      const response = await fetch(proxyUrl);
+      const response = await fetch('/api/stories');
+      if (response.status === 404) {
+        throw new Error('No stories available yet. Run Scenario 1 in Make first!');
+      }
       if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-      const text = await response.text();
-      if (!text || text.trim() === '') throw new Error('Empty response from Google Drive');
+      const data = await response.json();
+      const text = JSON.stringify(data);
       parseJson(text);
     } catch (error) {
-      alert(`❌ Error loading from Google Drive: ${error.message}\n\nMake sure the file is shared as "Anyone with the link" in Google Drive.`);
+      alert(`❌ ${error.message}`);
     } finally {
       setLoadingFromDrive(false);
     }
@@ -705,7 +699,7 @@ export default function NewsletterReorderer() {
               fontSize: '14px',
             }}
           >
-            {loadingFromDrive ? '⏳ Loading...' : '📂 Load from Google Drive'}
+            {loadingFromDrive ? '⏳ Loading...' : '📂 Load Today\'s Stories'}
           </button>
         </div>
         <textarea
