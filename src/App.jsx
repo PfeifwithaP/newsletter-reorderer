@@ -19,6 +19,10 @@ export default function NewsletterReorderer() {
   const [makeWebhookUrl, setMakeWebhookUrl] = useState(() => {
     return localStorage.getItem('makeWebhookUrl') || '';
   });
+  const [driveFileId, setDriveFileId] = useState(() => {
+    return localStorage.getItem('driveFileId') || '17n4JxDuqwEWK3JqHyHwTJZajgIYlfqxx';
+  });
+  const [loadingFromDrive, setLoadingFromDrive] = useState(false);
 
   // Load outlet map from localStorage or use defaults
   const defaultOutletMap = {
@@ -165,6 +169,29 @@ export default function NewsletterReorderer() {
   const saveMakeWebhookUrl = (url) => {
     setMakeWebhookUrl(url);
     localStorage.setItem('makeWebhookUrl', url);
+  };
+
+  const saveDriveFileId = (id) => {
+    setDriveFileId(id);
+    localStorage.setItem('driveFileId', id);
+  };
+
+  const loadFromDrive = async () => {
+    setLoadingFromDrive(true);
+    try {
+      const response = await fetch('/api/stories');
+      if (response.status === 404) {
+        throw new Error('No stories available yet. Run Scenario 1 in Make first!');
+      }
+      if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+      const data = await response.json();
+      const text = JSON.stringify(data);
+      parseJson(text);
+    } catch (error) {
+      alert(`❌ ${error.message}`);
+    } finally {
+      setLoadingFromDrive(false);
+    }
   };
 
   const sendToMake = async () => {
@@ -467,6 +494,34 @@ export default function NewsletterReorderer() {
               </div>
             </div>
 
+            {/* Google Drive File ID */}
+            <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #eee' }}>
+              <h3 style={{ marginTop: 0, marginBottom: '12px' }}>Google Drive File ID</h3>
+              <p style={{ fontSize: '12px', color: '#666', marginTop: 0, marginBottom: '12px' }}>
+                The ID of your Today's_Clips_JSON.txt file in Google Drive. Find it in the file's URL.
+              </p>
+              <input
+                type="text"
+                placeholder="17n4JxDuqwEWK3JqHyHwTJZajgIYlfqxx"
+                value={driveFileId}
+                onChange={(e) => saveDriveFileId(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  fontFamily: 'monospace',
+                  boxSizing: 'border-box',
+                }}
+              />
+              {driveFileId && (
+                <div style={{ fontSize: '12px', color: '#4CAF50', marginTop: '8px' }}>
+                  ✓ File ID saved
+                </div>
+              )}
+            </div>
+
             {/* Make Webhook URL */}
             <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #eee' }}>
               <h3 style={{ marginTop: 0, marginBottom: '12px' }}>Make Webhook URL</h3>
@@ -628,11 +683,29 @@ export default function NewsletterReorderer() {
         </div>
       )}
       <div style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-        <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>Paste JSON from Make:</label>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <label style={{ fontWeight: 'bold' }}>Paste JSON from Make:</label>
+          <button
+            onClick={loadFromDrive}
+            disabled={loadingFromDrive}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#1a73e8',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: loadingFromDrive ? 'wait' : 'pointer',
+              fontWeight: 'bold',
+              fontSize: '14px',
+            }}
+          >
+            {loadingFromDrive ? '⏳ Loading...' : '📂 Load Today\'s Stories'}
+          </button>
+        </div>
         <textarea
           value={jsonInput}
           onChange={(e) => setJsonInput(e.target.value)}
-          placeholder="Paste the aggregator JSON here..."
+          placeholder="Paste the aggregator JSON here, or click 'Load from Google Drive' above..."
           style={{
             width: '100%',
             height: '120px',
