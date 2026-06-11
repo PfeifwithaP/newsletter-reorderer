@@ -19,10 +19,6 @@ export default function NewsletterReorderer() {
   const [makeWebhookUrl, setMakeWebhookUrl] = useState(() => {
     return localStorage.getItem('makeWebhookUrl') || '';
   });
-  const [driveFileId, setDriveFileId] = useState(() => {
-    return localStorage.getItem('driveFileId') || '17n4JxDuqwEWK3JqHyHwTJZajgIYlfqxx';
-  });
-  const [loadingFromDrive, setLoadingFromDrive] = useState(false);
 
   // Load outlet map from localStorage or use defaults
   const defaultOutletMap = {
@@ -171,29 +167,6 @@ export default function NewsletterReorderer() {
     localStorage.setItem('makeWebhookUrl', url);
   };
 
-  const saveDriveFileId = (id) => {
-    setDriveFileId(id);
-    localStorage.setItem('driveFileId', id);
-  };
-
-  const loadFromDrive = async () => {
-    setLoadingFromDrive(true);
-    try {
-      const response = await fetch('/api/stories');
-      if (response.status === 404) {
-        throw new Error('No stories available yet. Run Scenario 1 in Make first!');
-      }
-      if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-      const data = await response.json();
-      const text = JSON.stringify(data);
-      parseJson(text);
-    } catch (error) {
-      alert(`❌ ${error.message}`);
-    } finally {
-      setLoadingFromDrive(false);
-    }
-  };
-
   const sendToMake = async () => {
     if (!makeWebhookUrl) {
       alert('Please enter your Make webhook URL in Settings first!');
@@ -201,77 +174,31 @@ export default function NewsletterReorderer() {
     }
 
     try {
-      // Build story HTML for each category, skipping empty ones
-      const categories = [
-        { key: '1. Davidson In The News', label: 'Davidson in the News' },
-        { key: '2. Higher Ed Headlines', label: 'Higher Ed Headlines' },
-        { key: '3. Trades', label: 'In The Trades' },
-      ];
-
-      const categorySections = categories
-        .map(({ key, label }) => {
-          const categoryStories = stories.filter((s) => s.SortKey === key);
-          if (categoryStories.length === 0) return '';
-
-          const articleBlocks = categoryStories
-            .map((s) => {
-              const titleWithOutlet = s.outlet ? `${s.outlet}: ${s.title}` : s.title;
-              return `<div style="margin-bottom: 20px; font-family: sans-serif; font-size: 14px; line-height: 1.5;">
+      const output = stories.map((s) => {
+        const titleWithOutlet = s.outlet ? `${s.outlet}: ${s.title}` : s.title;
+        return {
+          _id: s._id,
+          tags: s.tags,
+          SortKey: s.SortKey,
+          ArticleBlock: `<div style="margin-bottom: 20px; font-family: sans-serif; font-size: 14px; line-height: 1.5;">
    <a href="${s.link}" style="text-decoration: none; color: #000000; font-size: 16px;">
       <b>${titleWithOutlet}</b>
    </a>
    <div style="margin-top: 4px; color: #333333;">
       ${s.excerpt || ''}
    </div>
-</div>`;
-            })
-            .join('');
-
-          return `<h2 style="color: #d42121; margin-bottom: 5px; font-family: sans-serif; text-transform: uppercase;">${label}</h2>
-<div style="background-color: #ebebeb; height: 1px; margin-bottom: 20px;"></div>
-<div style="padding-top: 0px;">
-${articleBlocks}
-</div>`;
-        })
-        .join('');
-
-      const html = `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
-<body style="margin:0; padding:0; background-color: #ffffff;">
-<table border="0" cellpadding="0" cellspacing="0" width="100%">
-  <tr>
-    <td align="center" style="padding: 30px 15px 40px;">
-      <img src="https://mcusercontent.com/5ac02d7346979f6a5aa7ada75/images/3be1b307-5e9c-6291-1770-e4a5b7f5c5c8.png" width="600" style="display:block;" alt="Davidson College logo">
-      <div style="font-family: Georgia, serif; font-size: 29px; font-weight: bold; color: #4E4E4E; padding-top: 25px;">
-        Today's Clips (${new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' })})
-      </div>
-    </td>
-  </tr>
-</table>
-${categorySections}
-<table border="0" cellpadding="0" cellspacing="0" width="100%">
-  <tr>
-    <td align="center" style="padding: 0 15px 60px;">
-      <table border="0" cellpadding="0" cellspacing="0" width="600">
-        <tr><td style="padding: 25px 0;"><div style="background-color: #ebebeb; height: 1px;"></div></td></tr>
-        <tr>
-          <td style="font-family: Tahoma, sans-serif; font-size: 12px; color: #868686; text-align: center;">
-            Davidson College | 209 Ridge Road, Box 5000 | Davidson, NC 28035<br>
-            <a href="*|UNSUB|*" style="color: #868686;">Unsubscribe</a> | <a href="*|ARCHIVE|*" style="color: #868686;">View in browser</a>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>
-</body></html>`;
+</div>`,
+          link: s.link,
+          title: titleWithOutlet,
+          excerpt: s.excerpt,
+        };
+      });
 
       await fetch(makeWebhookUrl, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html }),
+        body: JSON.stringify(output),
       });
       alert('✅ Stories sent to Make! Your workflow will resume now.');
     } catch (error) {
@@ -540,34 +467,6 @@ ${categorySections}
               </div>
             </div>
 
-            {/* Google Drive File ID */}
-            <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #eee' }}>
-              <h3 style={{ marginTop: 0, marginBottom: '12px' }}>Google Drive File ID</h3>
-              <p style={{ fontSize: '12px', color: '#666', marginTop: 0, marginBottom: '12px' }}>
-                The ID of your Today's_Clips_JSON.txt file in Google Drive. Find it in the file's URL.
-              </p>
-              <input
-                type="text"
-                placeholder="17n4JxDuqwEWK3JqHyHwTJZajgIYlfqxx"
-                value={driveFileId}
-                onChange={(e) => saveDriveFileId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  fontFamily: 'monospace',
-                  boxSizing: 'border-box',
-                }}
-              />
-              {driveFileId && (
-                <div style={{ fontSize: '12px', color: '#4CAF50', marginTop: '8px' }}>
-                  ✓ File ID saved
-                </div>
-              )}
-            </div>
-
             {/* Make Webhook URL */}
             <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #eee' }}>
               <h3 style={{ marginTop: 0, marginBottom: '12px' }}>Make Webhook URL</h3>
@@ -729,29 +628,11 @@ ${categorySections}
         </div>
       )}
       <div style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <label style={{ fontWeight: 'bold' }}>Paste JSON from Make:</label>
-          <button
-            onClick={loadFromDrive}
-            disabled={loadingFromDrive}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#1a73e8',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: loadingFromDrive ? 'wait' : 'pointer',
-              fontWeight: 'bold',
-              fontSize: '14px',
-            }}
-          >
-            {loadingFromDrive ? '⏳ Loading...' : '📂 Load Today\'s Stories'}
-          </button>
-        </div>
+        <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>Paste JSON from Make:</label>
         <textarea
           value={jsonInput}
           onChange={(e) => setJsonInput(e.target.value)}
-          placeholder="Paste the aggregator JSON here, or click 'Load from Google Drive' above..."
+          placeholder="Paste the aggregator JSON here..."
           style={{
             width: '100%',
             height: '120px',
